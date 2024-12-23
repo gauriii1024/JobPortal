@@ -5,59 +5,69 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
+import axios from "axios";
+import { setUser } from "@/redux/authSlice";
+import { USER_API_END_POINT } from '@/utils/constant'
 
 const UpdateProfileDialog = ({ open, setOpen }) => {
     const [loading, setLoading] = useState(false);
     const {user} = useSelector(store => store.auth);
-    const dispatch = useDispatch();
+    
     const [input, setInput] = useState({
-        fullname:user?.fullname,
-        email:user?.email,
-        phoneNumber: user?.phoneNumber,
-        bio:user?.profile?.bio,
-        skills:user?.profile?.skills?.map(skill=> skill),
-        file:user?.profile?.resume
+        fullname:user?.fullname || "",
+        email:user?.email || "",
+        phoneNumber: user?.phoneNumber || "",
+        bio:user?.profile?.bio || "",
+        skills:user?.profile?.skills?.map(skill=> skill) || "",
+        file:user?.profile?.resume || ""
     });
+    const dispatch = useDispatch();
 
     const changeEventHandler = (e) => {
-        setInput({...input, [e.target.name]: e.targetvalue})
+        setInput({...input, [e.target.name]: e.target.value})
     }
 
-    const submitHandler = (e) => {
-        e.preventDefault();
-        console.log(input)
-    }
+    const submitHandler = async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append("fullname", input.fullname);
+      formData.append("email", input.email);
+      formData.append("phoneNumber", input.phoneNumber);
+      formData.append("bio", input.bio);
+      formData.append("skills", input.skills);
+      
+      if (input.file) {
+          formData.append("file", input.file);
+      }
+      
+      try {
+        setLoading(true);
+          const res = await axios.post(`${USER_API_END_POINT}/profile/update`, formData, {
+              headers: {
+                  'Content-Type': 'multipart/form-data',
+              },
+              withCredentials: true,
+          });
+  
+          if (res.data.success) {
+              dispatch(setUser(res.data.user));
+              toast.success(res.data.message);
+          }
+      } catch (error) {
+          console.log(error);
+          toast.error(error.response?.data?.message || "Profile update failed");
+      } finally {
+        setLoading(false);
+      }
+      setOpen(false);
+      console.log(input);
+  };
+  
 
     const fileChangeHandler = async (e) => {
-        const file = e.target.files?.[0];
-        const formData = new FormData();
-        formData.append("fullname", input.fullname);
-        formData.append("email", input.email);
-        formData.append("phoneNumber", input.phoneNumber);
-        formData.append("bio", input.bio);
-        formData.append("skills", input.skills);
-        
-        setInput({...input, file})
-        if (input.file) {
-            formData.append("file", input.file);
-        }
-        try {
-            const res = await axios.post(`${USER_API_END_POINT}/profile/update`, formData,{
-                headers: {
-                    'Content-Type' : 'multipart/form-data'
-                },
-                withCrediantials: true
-
-            });
-            if (res.data.success) {
-                dispatch(setUser(res.data.user));
-                toast.success(res.data.message);
-            }
-        } catch (error) {
-            console.log(error);
-            toast(error(error.response.data.message));
-        }setOpen(false);
-        console.log(input);
+      const file = e.target.files?.[0];
+      setInput({ ...input, file })
     }
 
   return (
@@ -73,7 +83,7 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                 <Label htmlFor="name" className="text-right">
                   Name
                 </Label>
-                <Input id="name" name="name"  type='text'
+                <Input id="fullname" name="fullname"  type='text'
                 value={input.fullname}
                 onChange={changeEventHandler}
                 className="col-span-3" />
@@ -91,7 +101,7 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                 <Label htmlFor="number" className="text-right">
                   Number
                 </Label>
-                <Input id="number" name="number" 
+                <Input id="phoneNumber" name="phoneNumber" 
                 onChange={changeEventHandler}
                 value={input.phoneNumber} className="col-span-3" />
               </div>
@@ -100,7 +110,8 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                 value={input.bio} className="text-right">
                   Bio
                 </Label>
-                <Input id="bio" name="bio" className="col-span-3" />
+                <Input id="bio" name="bio" className="col-span-3"
+                onChange={changeEventHandler}  />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="skills" 
@@ -122,13 +133,14 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                 />
               </div>
             </div>
-          </form>
-          <DialogFooter>
+            <DialogFooter>
           {
             loading ? <Button className="w-full my-4"> <Loader2 className="mr-2 h-4 w-4 animate-spin"/> </Button> :
             <Button type="submit" className="w-full my-4" >Update Profile</Button>
           }
           </DialogFooter>
+          </form>
+          
         </DialogContent>
       </Dialog>
     </div>

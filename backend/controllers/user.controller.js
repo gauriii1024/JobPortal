@@ -114,6 +114,11 @@ export const updateProfile = async (req, res) => {
         // };
 
         //cloudinary
+        const fileUri = getDataUri
+        const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+
+
+       
         let skillsArray;
         if (skills){
             const skillsArray = skills.split(",");
@@ -139,6 +144,10 @@ export const updateProfile = async (req, res) => {
         
 
         //resume later........
+        if (cloudResponse) {
+            user.profile.resume = cloudResponse.secure_url //save the cloudinary url
+            user.profile.resumeOriginalName = file.originalname //save the original file name
+        }
 
         await user.save();
 

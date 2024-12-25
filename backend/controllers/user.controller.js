@@ -1,6 +1,8 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import getDataUri from "../utils/datauri.js";
+import cloudinary from "../utils/cloudinary.js";
 
 export const register = async(req, res) => {
     try{
@@ -12,6 +14,11 @@ export const register = async(req, res) => {
                 success: false
             });
         };
+
+        const file = req.file;
+        const fileUri = getDataUri(file);
+        const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+
         const user = await User.findOne({email});
         if (user) {
             return res.status(400).json({
@@ -25,7 +32,10 @@ export const register = async(req, res) => {
             email, 
             phoneNumber,
             password: hashedPassword,
-            role
+            role,
+            profile: {
+                profilePhoto: cloudResponse.secure_url,
+            }
         });
         
         return res.status(201).json({
@@ -114,11 +124,12 @@ export const updateProfile = async (req, res) => {
         // };
 
         //cloudinary
-        const fileUri = getDataUri
-        const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+        // const fileUri = getDataUri
+        // const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
 
 
-       
+       const fileUri = getDataUri(file);
+       const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
         let skillsArray;
         if (skills){
             const skillsArray = skills.split(",");
@@ -145,8 +156,12 @@ export const updateProfile = async (req, res) => {
 
         //resume later........
         if (cloudResponse) {
+            user.profile.resume == cloudResponse.secure_url //save cloudinary url
+            user.profile.resumeOriginalName = file.originalname // save original file name
+        }
+        if (cloudResponse) {
             user.profile.resume = cloudResponse.secure_url //save the cloudinary url
-            user.profile.resumeOriginalName = file.originalname //save the original file name
+            user.profile.resumeOriginalName = file.originalname //save the original file namee
         }
 
         await user.save();

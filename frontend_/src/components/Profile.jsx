@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Navbar from "./ui/shared/Navbar";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
-import { Contact, Mail, Pen } from "lucide-react";
+import { Contact, Mail, Pen, User } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
 import AppliedJobTable from "./AppliedJobTable";
@@ -59,7 +59,7 @@ const Profile = () => {
         <div className="grid w-full max-w-sm items-center gap-1.5">
           <Label className="text-md font-bold">Resume</Label>
           {
-            isResume ? <a target='blank' href="https://www.youtube.com/" className="text-blue-500 w-full hover-underline cursor-pointer">ResumeLink</a> :
+            isResume ? <a target='blank' href={user?.profile?.resume} className="text-blue-500 w-full hover-underline cursor-pointer">{user?.profile?.resumeOriginalName}</a> :
             <span>NA</span>
           }
         </div>

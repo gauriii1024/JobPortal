@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { useParams } from "react-router-dom";
@@ -16,19 +16,24 @@ const JobDescription = () => {
   const singleJob = useSelector(store => store.job.singleJob);
   const { user } = useSelector(store => store.auth) || null;
   const jobId = params.id;
-  const isApplied = singleJob?.applications?.some(application => application.applicant === user?._id) || false;
+  const isInitiallyApplied = singleJob?.applications?.some(application => application.applicant === user?._id) || false;
+  const [isApplied, setIsApplied] = useState(isInitiallyApplied);
 
   const applyJobHandler = async () => {
     try {
       const res = await axios.get(`${APPLICATION_API_END_POINT}/apply/${jobId}`,{withCredentials:true});
       console.log(res.data)
       if (res.data.success) {
+        setIsApplied(true);
+        const updatedSingleJob = {...singleJob, applications:[...singleJob.applications, {applicant:user?._id}]}
+        dispatch(setSingleJob(updatedSingleJob))
         toast.success(res.data.message)
+        console.log("Button state isApplied:", isApplied); 
         //dispatch(setSingleJob)
       }
     } catch (error) {
       console.log(error);
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message);
     }
   }
 
@@ -36,12 +41,11 @@ const JobDescription = () => {
   useEffect(() => {
     const fetchSingleJobs = async () => {
       try {
-        const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {withCredentials: true});
         console.log("API Response:", res.data);
         if (res.data.success) {
           dispatch(setSingleJob(res.data.job));
+          setIsApplied(res.data.job.applications.some(application=>application.applicant === user?._id))
         }
       } catch (error) {
         console.log(error);
@@ -73,7 +77,7 @@ const JobDescription = () => {
           <Button
           onClick = {isApplied ? null: applyJobHandler}
             disabled={isApplied}
-            className={`rounded-lg ${
+            className={`rounded-lg transition-all duration-300 ${
               isApplied
                 ? "bg-gray-600 cursor-not-allowed"
                 : "bg-[#7209b7] hover:bg-[#59066165]"
